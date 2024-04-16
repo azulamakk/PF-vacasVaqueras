@@ -3,3 +3,4 @@ images
 label_cluster.csv
 layoutsWithTags.csv
 imageFeatures.csv
+anomalous_images_details.csv
