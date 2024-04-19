@@ -1,5 +1,5 @@
-merged_file.json
 images
+<<<<<<< HEAD
 label_cluster.csv
 layoutsWithTags.csv
 imageFeatures.csv
@@ -16,3 +16,7 @@ clean_data.json
 adjusted_data.json
 overlapping_bboxes_details.csv
 strange_images.csv
+=======
+*.csv
+*.json
+>>>>>>> 2daf2caead55fe062263a431c9ec7eaaca1834cb
