@@ -1,13 +1,3 @@
-merged_file.json
 images
-label_cluster.csv
-layoutsWithTags.csv
-imageFeatures.csv
-anomalous_images_details.csv
-layouts+fotos.csv
-layouts+info_fotos
-layout_mas.csv
-layouts_todo2.csv
-layouts1.csv
-layouts_todo.csv
-layouts_fotos
+*.csv
+*.json
