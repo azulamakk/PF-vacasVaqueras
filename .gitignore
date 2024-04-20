@@ -1,3 +1,22 @@
 images
+<<<<<<< HEAD
+label_cluster.csv
+layoutsWithTags.csv
+imageFeatures.csv
+anomalous_images_details.csv
+layouts+fotos.csv
+layouts+info_fotos
+layout_mas.csv
+layouts_todo2.csv
+layouts1.csv
+layouts_todo.csv
+layouts_fotos
+clean_images
+clean_data.json
+adjusted_data.json
+overlapping_bboxes_details.csv
+strange_images.csv
+=======
 *.csv
 *.json
+>>>>>>> 2daf2caead55fe062263a431c9ec7eaaca1834cb
