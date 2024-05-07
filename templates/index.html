@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Object Detection with YOLOv5</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            padding: 20px;
+        }
+        h1 {
+            text-align: center;
+        }
+        form {
+            margin-bottom: 20px;
+        }
+        #results {
+            position: relative;
+            margin-top: 20px;
+        }
+        #results img {
+            max-width: 100%;
+            display: block;
+            margin: 0 auto;
+        }
+        .object-box {
+            border: 2px solid red;
+            position: absolute;
+        }
+    </style>
+</head>
+<body>
+    <h1>Object Detection with YOLOv5</h1>
+    <form id="uploadForm" enctype="multipart/form-data">
+        <input type="file" id="imageFile" name="file" accept="image/*" required>
+        <button type="submit">Detect Objects</button>
+    </form>
+
+    <div id="results"></div>
+
+    <script>
+        document.getElementById('uploadForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+
+            var formData = new FormData();
+            formData.append('file', document.getElementById('imageFile').files[0]);
+
+            fetch('/detect', {
+                method: 'POST',
+                body: formData
+            })
+            .then(response => response.json())
+            .then(data => {
+                var resultsDiv = document.getElementById('results');
+                resultsDiv.innerHTML = '';
+
+                if (data.objects) {
+                    // Mostrar la imagen original
+                    var imgElement = document.createElement('img');
+                    imgElement.src = URL.createObjectURL(document.getElementById('imageFile').files[0]);
+                    resultsDiv.appendChild(imgElement);
+
+                    // Dibujar las cajas delimitadoras de los objetos detectados
+                    data.objects.forEach(obj => {
+                        var box = document.createElement('div');
+                        box.className = 'object-box';
+                        box.style.left = obj.xmin + 'px';
+                        box.style.top = obj.ymin + 'px';
+                        box.style.width = (obj.xmax - obj.xmin) + 'px';
+                        box.style.height = (obj.ymax - obj.ymin) + 'px';
+                        box.innerHTML = `${obj.label} (${(obj.confidence * 100).toFixed(2)}%)`;
+                        resultsDiv.appendChild(box);
+                    });
+                } else {
+                    resultsDiv.innerHTML = 'No objects detected';
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+            });
+        });
+    </script>
+</body>
+</html>
