@@ -3,48 +3,111 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Object Detection with YOLOv5</title>
+    <title>Conteo de plantas de maiz usando YOLOv5</title>
     <style>
         body {
-            font-family: Arial, sans-serif;
+            font-family: 'Montserrat', sans-serif; /* Use Montserrat font */
+            margin: 0;
             padding: 20px;
-        }
-        h1 {
+            background-color: #d3efd7; /* Light green background */
             text-align: center;
+            color: #333;
         }
-        form {
+
+        h1 {
+            color: #333;
             margin-bottom: 20px;
         }
-        #results {
-            position: relative;
-            margin-top: 20px;
+
+        #uploadForm {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            margin-bottom: 20px;
         }
+
+        #imageFile {
+            display: none;
+        }
+
+        .button {
+            padding: 10px 20px;
+            background-color: #28a745;
+            color: #fff;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: background-color 0.3s ease;
+            margin-bottom: 10px;
+            width: 200px; /* Ancho deseado para los botones */
+        }
+
+        .button:hover {
+            background-color: #154d21;
+        }
+
+        #message {
+            font-style: italic;
+            color: #28a745;
+            margin-bottom: 10px;
+        }
+
+        #results {
+            text-align: center;
+            position: relative;
+            margin-bottom: 20px;
+        }
+
         #results img {
             max-width: 100%;
-            display: block;
-            margin: 0 auto;
+            height: auto;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+            margin-bottom: 20px;
         }
+
         .object-box {
-            border: 2px solid red;
             position: absolute;
+            border: 2px solid #dc3545;
+            color: #dc3545;
+            font-weight: bold;
+            background-color: rgba(220, 53, 69, 0.3);
+            padding: 5px;
+            border-radius: 3px;
+        }
+
+        #plantCount {
+            font-weight: bold;
+            color: #333;
         }
     </style>
 </head>
 <body>
-    <h1>Object Detection with YOLOv5</h1>
+    <h1>Conteo de plantas de maiz usando YOLOv5</h1>
+    
     <form id="uploadForm" enctype="multipart/form-data">
+        <label for="imageFile" class="button">Seleccione una imagen</label>
         <input type="file" id="imageFile" name="file" accept="image/*" required>
-        <button type="submit">Detect Objects</button>
+        <button type="button" id="detectButton" class="button">Detectar objetos</button>
     </form>
 
+    <div id="message"></div>
     <div id="results"></div>
+    <div id="plantCount"></div> <!-- Nuevo div para mostrar el conteo de plantas detectadas -->
 
     <script>
-        document.getElementById('uploadForm').addEventListener('submit', function(e) {
-            e.preventDefault();
+        document.getElementById('detectButton').addEventListener('click', function() {
+            var fileInput = document.getElementById('imageFile');
+            var file = fileInput.files[0];
+
+            if (!file) {
+                showMessage('Please select an image.');
+                return;
+            }
+
+            showMessage('Detecting objects...');
 
             var formData = new FormData();
-            formData.append('file', document.getElementById('imageFile').files[0]);
+            formData.append('file', file);
 
             fetch('/detect', {
                 method: 'POST',
@@ -55,31 +118,52 @@
                 var resultsDiv = document.getElementById('results');
                 resultsDiv.innerHTML = '';
 
+                var messageDiv = document.getElementById('message');
+                var plantCountDiv = document.getElementById('plantCount'); // Elemento para mostrar el conteo
+
                 if (data.objects) {
-                    // Mostrar la imagen original
+                    // Mostrar la imagen original como una vista previa
                     var imgElement = document.createElement('img');
-                    imgElement.src = URL.createObjectURL(document.getElementById('imageFile').files[0]);
+                    imgElement.src = URL.createObjectURL(file);
                     resultsDiv.appendChild(imgElement);
 
-                    // Dibujar las cajas delimitadoras de los objetos detectados
-                    data.objects.forEach(obj => {
+                    // Mostrar mensaje de éxito
+                    messageDiv.textContent = 'Objetos detectados correctamente!';
+
+                    // Filtrar y contar objetos válidos
+                    var validPlants = data.objects.filter(obj => obj.confidence >= 0.25 && !obj.filtered);
+                    
+                    // Dibujar las cajas delimitadoras de los objetos detectados válidos
+                    validPlants.forEach(obj => {
                         var box = document.createElement('div');
                         box.className = 'object-box';
                         box.style.left = obj.xmin + 'px';
                         box.style.top = obj.ymin + 'px';
                         box.style.width = (obj.xmax - obj.xmin) + 'px';
                         box.style.height = (obj.ymax - obj.ymin) + 'px';
+                        box.style.color = '#fff'; // Texto blanco en las bounding boxes
                         box.innerHTML = `${obj.label} (${(obj.confidence * 100).toFixed(2)}%)`;
                         resultsDiv.appendChild(box);
                     });
+
+                    // Mostrar conteo de plantas detectadas válidas
+                    plantCountDiv.textContent = `Cantidad de plantas detectadas: ${validPlants.length}`;
                 } else {
-                    resultsDiv.innerHTML = 'No objects detected';
+                    // Mostrar mensaje de error
+                    messageDiv.textContent = 'No objects detected.';
+                    plantCountDiv.textContent = ''; // Limpiar el conteo si no se detectaron objetos
                 }
             })
             .catch(error => {
                 console.error('Error:', error);
+                showMessage('Error during detection.');
             });
         });
+
+        function showMessage(message) {
+            var messageDiv = document.getElementById('message');
+            messageDiv.textContent = message;
+        }
     </script>
 </body>
 </html>
