@@ -1,0 +1,232 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Conteo de plantas de maiz usando YOLOv5</title>
+    <style>
+        body {
+            font-family: 'Montserrat', sans-serif; /* Use Montserrat font */
+            margin: 0;
+            padding: 20px;
+            background-color: #d3efd7; /* Light green background */
+            text-align: center;
+            color: #333;
+        }
+
+        h1 {
+            color: #333;
+            margin-bottom: 20px;
+        }
+
+        #uploadForm {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        #imageFile {
+            display: none;
+        }
+
+        .button {
+            padding: 10px 20px;
+            background-color: #28a745;
+            color: #fff;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: background-color 0.3s ease;
+            margin-bottom: 10px;
+            width: 200px; /* Ancho deseado para los botones */
+        }
+
+        .button:hover {
+            background-color: #154d21;
+        }
+
+        #message {
+            font-style: italic;
+            color: #28a745;
+            margin-bottom: 10px;
+        }
+
+        #results {
+            text-align: center;
+            position: relative;
+            margin-bottom: 20px;
+        }
+
+        #results img {
+            max-width: 100%;
+            height: auto;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+            margin-bottom: 20px;
+            position: relative; /* Añadir posición relativa a la imagen */
+        }
+
+        .object-box {
+            position: absolute;
+            border: 2px solid #dc3545;
+            color: #dc3545;
+            font-weight: bold;
+            background-color: rgba(220, 53, 69, 0.3);
+            padding: 5px;
+            border-radius: 3px;
+            box-sizing: border-box; /* Incluir el borde en las dimensiones de la caja */
+        }
+
+        #plantCount {
+            font-weight: bold;
+            color: #333;
+            margin-bottom: 20px;
+        }
+    </style>
+</head>
+<body>
+    <h1>Conteo de plantas de maiz usando YOLOv5</h1>
+    
+    <form id="uploadForm" enctype="multipart/form-data">
+        <label for="imageFile" class="button">Seleccione una imagen</label>
+        <input type="file" id="imageFile" name="file" accept="image/png, image/jpeg" required>
+        <button type="button" id="detectButton" class="button">Detectar objetos</button>
+    </form>
+
+    <div id="message"></div>
+    <div id="results"></div>
+    <div id="plantCount"></div> <!-- Nuevo div para mostrar el conteo de plantas detectadas -->
+    <button type="button" id="downloadButton" class="button" style="display: none;">Descargar imagen con bounding boxes</button>
+
+    <script>
+        document.getElementById('detectButton').addEventListener('click', function() {
+            var fileInput = document.getElementById('imageFile');
+            var file = fileInput.files[0];
+
+            if (!file) {
+                showMessage('Por favor, seleccione una imagen.');
+                return;
+            }
+
+            showMessage('Detectando objetos...');
+
+            var formData = new FormData();
+            formData.append('file', file);
+
+            fetch('/detect', {
+                method: 'POST',
+                body: formData
+            })
+            .then(response => response.json())
+            .then(data => {
+                var resultsDiv = document.getElementById('results');
+                resultsDiv.innerHTML = '';
+
+                var messageDiv = document.getElementById('message');
+                var plantCountDiv = document.getElementById('plantCount');
+                var downloadButton = document.getElementById('downloadButton');
+
+                if (data.objects) {
+                    var imgElement = document.createElement('img');
+                    imgElement.style.width = '100%';
+                    imgElement.style.height = '100%';
+                    imgElement.style.objectFit = 'contain';
+                    imgElement.style.marginBottom = '0';
+                    imgElement.onload = function() {
+                    
+                        // Mostrar la imagen original como una vista previa
+                        resultsDiv.appendChild(imgElement);
+
+                        // Mostrar mensaje de éxito
+                        messageDiv.textContent = 'Objetos detectados correctamente!';
+                        const scaleX = 1 / imgElement.naturalWidth;
+                        const scaleY = 1 / imgElement.naturalHeight;
+
+                        // Filtrar y contar objetos válidos
+                        var validPlants = data.objects.filter(obj => obj.confidence >= 0.25 && !obj.filtered);
+
+                        // Dibujar las cajas delimitadoras de los objetos detectados válidos
+                        validPlants.forEach(obj => {
+                            var box = document.createElement('div');
+                            box.className = 'object-box';
+                            box.style.boxSizing = 'border-box';
+
+                            // Calcular las coordenadas relativas al tamaño de visualización de la imagen
+                            var scaledXmin = (obj.xmin * scaleX) * 100;
+                            var scaledYmin = (obj.ymin * scaleY) * 100;
+                            var scaledWidth = Math.min(((obj.xmax - obj.xmin) * scaleX) * 100, 100 - scaledXmin);
+                            var scaledHeight = Math.min(((obj.ymax - obj.ymin) * scaleY) * 100, 100 - scaledYmin);
+
+                            // Establecer la posición y dimensiones de la bounding box en porcentajes
+                            box.style.left = scaledXmin + '%';
+                            box.style.top = scaledYmin + '%';
+                            box.style.width = scaledWidth + '%';
+                            box.style.height = scaledHeight + '%';
+                            box.style.color = '#fff';
+                            box.innerHTML = `${obj.label} (${(obj.confidence * 100).toFixed(2)}%)`;
+
+                            // Verificar límites de la imagen
+                            if (scaledXmin + scaledWidth <= 100 && scaledYmin + scaledHeight <= 100) {
+                                imgElement.parentElement.appendChild(box); // Agregar la caja a la imagen
+                            }
+                        });
+
+                        // Mostrar conteo de plantas detectadas válidas
+                        plantCountDiv.textContent = `Cantidad de plantas detectadas: ${validPlants.length}`;
+
+                        // Mostrar botón de descarga
+                        downloadButton.style.display = 'inline-block';
+                    };
+
+                    imgElement.src = URL.createObjectURL(file);
+
+                    // Habilitar la descarga de la imagen con bounding boxes
+                    downloadButton.onclick = function() {
+                        var canvas = document.createElement('canvas');
+                        canvas.width = imgElement.naturalWidth;
+                        canvas.height = imgElement.naturalHeight;
+                        var ctx = canvas.getContext('2d');
+                        ctx.drawImage(imgElement, 0, 0);
+
+                        // Dibujar las bounding boxes en el canvas
+                        validPlants.forEach(obj => {
+                            var scaledXmin = (obj.xmin / imgElement.naturalWidth) * canvas.width;
+                            var scaledYmin = (obj.ymin / imgElement.naturalHeight) * canvas.height;
+                            var scaledWidth = (obj.xmax - obj.xmin) / imgElement.naturalWidth * canvas.width;
+                            var scaledHeight = (obj.ymax - obj.ymin) / imgElement.naturalHeight * canvas.height;
+
+                            ctx.beginPath();
+                            ctx.rect(scaledXmin, scaledYmin, scaledWidth, scaledHeight);
+                            ctx.lineWidth = 2;
+                            ctx.strokeStyle = '#dc3545';
+                            ctx.fillStyle = 'rgba(220, 53, 69, 0.3)';
+                            ctx.fill();
+                            ctx.stroke();
+                        });
+
+                        // Crear un enlace de descarga para la imagen modificada
+                        var link = document.createElement('a');
+                        link.download = 'image_with_bounding_boxes.png';
+                        link.href = canvas.toDataURL('image/png');
+                        link.click();
+                    };
+                } else {
+                    // Mostrar mensaje de error
+                    messageDiv.textContent = 'No se detectaron objetos válidos.';
+                    plantCountDiv.textContent = '';
+                    downloadButton.style.display = 'none';
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                showMessage('Error durante la detección.');
+            });
+        });
+
+        function showMessage(message) {
+            var messageDiv = document.getElementById('message');
+            messageDiv.textContent = message;
+        }
+    </script>
+</body>
+</html>

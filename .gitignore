@@ -1,21 +1,6 @@
 images
 *.csv
 *.json
-clean_images
 *.yaml
-TXT DATA
-Train_test
-yolov5
 *.pt
-TRAININGcompleto
-TRAININGcompleto2
-TRAININGcompleto3
-TRAININGcompleto4
-TRAININGcompleto5
-TRAININGcompleto6
-TRAININGcompleto7
-TRAININGcompleto8
-TRAININGcompleto9
-runs
-.cometml-runs
 __pycache__
